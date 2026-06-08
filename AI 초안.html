@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TBL 경영 시뮬레이션: 위대한 CEO</title>
+    <style>
+        :root {
+            --profit-color: #ffd700;
+            --people-color: #ff6b6b;
+            --planet-color: #4ecdc4;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #2b2d42;
+        }
+        body {
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 { text-align: center; }
+        .hidden { display: none !important; }
+        
+        /* 버튼 스타일 */
+        button {
+            background-color: #4361ee;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 5px;
+        }
+        button:hover { background-color: #3f37c9; }
+        button.danger { background-color: #e63946; }
+        
+        /* 설정 화면 */
+        .setup-group {
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 200px;
+            text-align: center;
+        }
+
+        /* 대시보드 (상단 현황판) */
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .group-card {
+            background: #f1faee;
+            border: 2px solid #a8dadc;
+            border-radius: 10px;
+            padding: 15px;
+            width: 220px;
+        }
+        .group-card h4 { margin: 0 0 10px 0; text-align: center; font-size: 18px; }
+        .stat-row { display: flex; align-items: center; margin-bottom: 5px; font-size: 14px;}
+        .stat-label { width: 50px; font-weight: bold;}
+        .stat-bar-bg {
+            flex-grow: 1;
+            background: #ddd;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 0 10px;
+        }
+        .stat-bar-fill { height: 100%; transition: width 0.5s ease; }
+        .stat-value { width: 30px; text-align: right; font-weight: bold; }
+
+        /* 게임 화면 */
+        .timer-box {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #e63946;
+            margin: 20px 0;
+            padding: 10px;
+            border: 3px dashed #e63946;
+            border-radius: 10px;
+        }
+        .dilemma-box {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+        .choices-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .choice-card {
+            background: white;
+            border: 2px solid #dee2e6;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .choice-card span { font-weight: bold; margin-right: 10px; color: #4361ee; }
+        
+        .decision-area {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+        .decision-item { display: flex; flex-direction: column; gap: 5px; }
+        .decision-item select { padding: 8px; border-radius: 5px; font-size: 16px; }
+
+        /* 결과 화면 */
+        .result-impact { margin-top: 10px; font-weight: bold; }
+        .impact-profit { color: #d4af37; }
+        .impact-people { color: #e63946; }
+        .impact-planet { color: #2a9d8f; }
+
+        /* 최종 순위표 */
+        .final-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .final-table th, .final-table td { border: 1px solid #ccc; padding: 12px; text-align: center; }
+        .final-table th { background: #4361ee; color: white; }
+        .comment-box { font-style: italic; color: #555; }
+        .penalty-text { color: red; font-size: 12px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="screen-setup">
+        <h1>🌱 위대한 CEO: TBL 경영 시뮬레이션</h1>
+        <p style="text-align: center;">우리 조의 회사를 설립하고 기업의 사회적 책임을 다해보세요!</p>
+        
+        <div class="setup-group">
+            <label><strong>플레이할 조 개수 (4~7조)</strong></label>
+            <input type="number" id="group-count" min="4" max="7" value="5">
+            <button onclick="generateGroupInputs()">조 이름 입력하기</button>
+        </div>
+        
+        <div id="group-names-container" class="setup-group hidden">
+            </div>
+    </div>
+
+    <div id="screen-game" class="hidden">
+        <h2 id="round-title">라운드 1</h2>
+        
+        <div class="dashboard" id="dashboard"></div>
+
+        <div class="timer-box">
+            토의 시간: <span id="time-display">03:00</span>
+            <br>
+            <button onclick="startTimer()" style="font-size: 12px; padding: 5px;">시작</button>
+            <button onclick="pauseTimer()" style="font-size: 12px; padding: 5px;">일시정지</button>
+        </div>
+
+        <div class="dilemma-box" id="dilemma-text"></div>
+        <div class="choices-grid" id="choices-container"></div>
+
+        <h3>🏢 각 조별 의사결정 (A ~ D)</h3>
+        <div class="decision-area" id="decision-area"></div>
+        
+        <div style="text-align: center;">
+            <button onclick="processRoundResults()" style="font-size: 20px; padding: 15px 30px;">결정 완료 및 결과 보기</button>
+        </div>
+    </div>
+
+    <div id="screen-result" class="hidden">
+        <h2>📊 라운드 결과 발표</h2>
+        <div class="dilemma-box">
+            <h3>선택에 따른 지표 변화</h3>
+            <div id="result-impacts"></div>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="nextRound()" style="font-size: 20px;">다음 라운드로 이동</button>
+        </div>
+    </div>
+
+    <div id="screen-final" class="hidden">
+        <h1>🏆 최종 경영 평가 결과</h1>
+        <p style="text-align: center; color: red;"><strong>※ 불균형 페널티:</strong> 이익/사람/지구 중 최고점과 최저점의 격차가 40점 이상이면 총점에서 30점 감점!</p>
+        <table class="final-table">
+            <thead>
+                <tr>
+                    <th>순위</th>
+                    <th>회사명</th>
+                    <th>최종 점수</th>
+                    <th>경영 평가 코멘트</th>
+                </tr>
+            </thead>
+            <tbody id="final-tbody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// --- 데이터 및 상태 관리 ---
+const MAX_ROUNDS = 5;
+let currentRound = 0;
+let groups = [];
+let timerInterval;
+let timeLeft = 180; // 3분
+
+// 딜레마 시나리오 데이터 (중3 수준에 맞춘 유쾌한 사례)
+const scenarios = [
+    {
+        title: "라운드 1: 하천의 눈물 (환경/지역사회)",
+        body: "공장에서 나온 폐수가 실수로 인근 하천에 유출된 정황이 발견되었습니다. 아직 언론에는 보도되지 않았지만, 마을 주민들이 물고기 떼죽음을 발견하고 의심하고 있습니다. CEO인 당신의 선택은?",
+        choices: [
+            { id: 'A', text: "폐수요? 원래 초록색 강물인데요? 👀 (시치미 뚝 떼고 전면 부인하기)", profit: 20, people: -20, planet: -30 },
+            { id: 'B', text: "아이고~ 저희 실수! (눈물 닦으며 최소 벌금만 내고 서둘러 덮기)", profit: -5, people: -5, planet: -10 },
+            { id: 'C', text: "우리가 쓰레기였습니다ㅠㅠ (도게자 박고 전 직원 뜰채 들고 하천 청소 투입)", profit: -15, people: 15, planet: 20 },
+            { id: 'D', text: "이참에 친환경 폼 미쳤다! (외계인 고문해서 만든 최신 무폐수 시스템 풀가동)", profit: -30, people: 20, planet: 35 }
+        ]
+    },
+    {
+        title: "라운드 2: 터져버린 신제품 (소비자/윤리)",
+        body: "야심차게 출시한 신제품 스마트 워치 배터리가 발열로 인해 화상을 입혔다는 제보가 3건 접수되었습니다. 생산 라인을 멈추면 막대한 손해가 발생합니다.",
+        choices: [
+            { id: 'A', text: "고객님 체온이 너무 높으신 거 아니에요? (적반하장으로 소비자 과실 몰아가기)", profit: 15, people: -30, planet: 0 },
+            { id: 'B', text: "쉿, 며느리도 모르게 잠수함 패치~ (공지 없이 다음 생산분부터 부품 쓱 바꾸기)", profit: 5, people: -10, planet: 0 },
+            { id: 'C', text: "죄송합니다! (따지고 화내는 VIP(?) 고객님들한테만 조용히 환불해주기)", profit: -10, people: 10, planet: 0 },
+            { id: 'D', text: "다 가져와! 다 물어내! (전량 리콜에 연고랑 밴드까지 챙겨주는 갓벽한 보상)", profit: -30, people: 30, planet: 0 }
+        ]
+    },
+    {
+        title: "라운드 3: 난로 에디션 임박?! 우리 폰 또 터졌다 ㄷㄷ 🔥(환경/노동)",
+        body: "우리 회사 신상 스마트폰이 자꾸 발열되다 못해 펑펑 터지는 '손난로 에디션' 사태가 터졌습니다!! 커뮤니티에서는 벌써 '겨울에 개꿀이네 ㅋㅋ' 드립이 터지고 주가는 그냥 떡락 중... .",
+        choices: [
+            { id: 'A', text: "핫팩 기능 탑재 완료! (기적의 논리로 '정상 제품' 우기고 버티기)", profit: 10, people: -25, planet: 0 },
+            { id: 'B', text: "앗 뜨거! 하신 분? 이쪽으로 오세요~ (입막음용 새 폰 비밀리에 쥐어주기)", profit: -5, people: 5, planet: 0 },
+            { id: 'C', text: "저희 폰이 불꽃놀이를 해버렸네요ㅠ (쿨하게 100% 환불 때리고 대국민 사과)", profit: -15, people: 20, planet: 0 },
+            { id: 'D', text: "위기는 기회다! (절대 안 터지는 방탄 폰으로 싹 갈아엎고 폼 미치게 재출시!)", profit: -25, people: 35, planet: 10 }
+        ]
+    },
+    {
+        title: "라운드 4: AI의 습격 (노동/혁신)",
+        body: "최신 AI 기술을 도입하면 고객센터 직원의 70%를 줄이고 이익을 극대화할 수 있습니다. 하지만 이로 인해 수많은 직원들이 하루아침에 직장을 잃게 됩니다.",
+        choices: [
+            { id: 'A', text: "너, 내 동료가... 될 수 없다! (인간은 칼같이 자르고 AI한테 일 다 떠넘기기)", profit: 35, people: -35, planet: 0 },
+            { id: 'B', text: "위로금 빵빵하게 줄 테니 제발 나가줄 사람? ㅠㅠ (눈물 닦으며 희망퇴직 받기)", profit: 10, people: -10, planet: 0 },
+            { id: 'C', text: "AI야, 네 사수는 인간 대리님이다! (어색하지만 AI와 직원의 하이브리드 협업 도입)", profit: -5, people: 15, planet: 0 },
+            { id: 'D', text: "우린 깐부잖아! 아무도 안 버린다! (전 직원 모아놓고 스파르타 AI 마스터 특훈 돌입)", profit: -20, people: 30, planet: 0 }
+        ]
+    },
+    {
+        title: "라운드 5: 플라스틱의 유혹 (환경/수익)",
+        body: "완벽하게 썩는 100% 생분해성 친환경 신소재 개발에 성공했습니다! 하지만 기존 플라스틱보다 단가가 3배나 비싸서 당장 이익률이 크게 떨어집니다.",
+        choices: [
+            { id: 'A', text: "지구야 미안해, 내 통장 잔고가 더 급해! (가볍게 환경 포기하고 플라스틱 콸콸 쓰기)", profit: 20, people: 0, planet: -20 },
+            { id: 'B', text: "플라스틱 90%에 친환경 10% 첨가! (겉에만 '에코' 마크 달고 비싸게 파는 얌체 마케팅)", profit: 30, people: -20, planet: -30 },
+            { id: 'C', text: "비싼 돈 내는 VVIP 고객님들만 환경 지켜드립니다~ (프리미엄 라인에만 살짝 친환경 묻히기)", profit: -10, people: 10, planet: 15 },
+            { id: 'D', text: "돈은 잃어도 낭만(환경)은 못 참지! (당장 적자 나도 100% 생분해성 소재로 상남자식 풀 악셀!)", profit: -30, people: 20, planet: 40 }
+        ]
+    }
+];
+
+// --- 함수 구현 ---
+
+function generateGroupInputs() {
+    const count = document.getElementById('group-count').value;
+    const container = document.getElementById('group-names-container');
+    container.innerHTML = '';
+    
+    for(let i=1; i<=count; i++) {
+        container.innerHTML += `
+            <div>
+                <label>${i}조 회사명: </label>
+                <input type="text" id="group-name-${i}" placeholder="예: 평화컴퍼니" value="${i}조">
+            </div>
+        `;
+    }
+    container.innerHTML += `<button onclick="startGame()" style="margin-top: 15px;">게임 시작!</button>`;
+    container.classList.remove('hidden');
+}
+
+function startGame() {
+    const count = document.getElementById('group-count').value;
+    groups = [];
+    for(let i=1; i<=count; i++) {
+        const name = document.getElementById(`group-name-${i}`).value || `${i}조`;
+        groups.push({
+            id: i,
+            name: name,
+            profit: 50,
+            people: 50,
+            planet: 50,
+            history: [] // [ 'A', 'C', ... ]
+        });
+    }
+    
+    document.getElementById('screen-setup').classList.add('hidden');
+    document.getElementById('screen-game').classList.remove('hidden');
+    
+    loadRound();
+}
+
+function updateDashboard() {
+    const dash = document.getElementById('dashboard');
+    dash.innerHTML = '';
+    
+    groups.forEach(g => {
+        // 퍼센트가 0~100 사이를 넘지 않게 시각적 처리
+        const p_profit = Math.max(0, Math.min(100, g.profit));
+        const p_people = Math.max(0, Math.min(100, g.people));
+        const p_planet = Math.max(0, Math.min(100, g.planet));
+
+        dash.innerHTML += `
+            <div class="group-card">
+                <h4>${g.name}</h4>
+                <div class="stat-row">
+                    <div class="stat-label">이익</div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: ${p_profit}%; background: var(--profit-color);"></div></div>
+                    <div class="stat-value">${g.profit}</div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label">사람</div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: ${p_people}%; background: var(--people-color);"></div></div>
+                    <div class="stat-value">${g.people}</div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label">지구</div>
+                    <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: ${p_planet}%; background: var(--planet-color);"></div></div>
+                    <div class="stat-value">${g.planet}</div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function loadRound() {
+    if (currentRound >= MAX_ROUNDS) {
+        showFinalResult();
+        return;
+    }
+    
+    const scenario = scenarios[currentRound];
+    document.getElementById('round-title').innerText = scenario.title;
+    document.getElementById('dilemma-text').innerText = scenario.body;
+    
+    const choicesDiv = document.getElementById('choices-container');
+    choicesDiv.innerHTML = '';
+    scenario.choices.forEach(c => {
+        choicesDiv.innerHTML += `
+            <div class="choice-card">
+                <span>[${c.id}]</span> ${c.text}
+            </div>
+        `;
+    });
+
+    const decisionArea = document.getElementById('decision-area');
+    decisionArea.innerHTML = '';
+    groups.forEach(g => {
+        decisionArea.innerHTML += `
+            <div class="decision-item">
+                <label><strong>${g.name}</strong></label>
+                <select id="decision-${g.id}">
+                    <option value="A">선택지 A</option>
+                    <option value="B">선택지 B</option>
+                    <option value="C">선택지 C</option>
+                    <option value="D">선택지 D</option>
+                </select>
+            </div>
+        `;
+    });
+
+    updateDashboard();
+    
+    // 타이머 리셋 (3분)
+    pauseTimer();
+    timeLeft = 180;
+    updateTimeDisplay();
+}
+
+// 타이머 관련 로직
+function updateTimeDisplay() {
+    const min = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+    const sec = String(timeLeft % 60).padStart(2, '0');
+    document.getElementById('time-display').innerText = `${min}:${sec}`;
+}
+function startTimer() {
+    if (!timerInterval) {
+        timerInterval = setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                updateTimeDisplay();
+            } else {
+                pauseTimer();
+                alert("토의 시간이 종료되었습니다! 결정을 내려주세요.");
+            }
+        }, 1000);
+    }
+}
+function pauseTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+}
+
+function processRoundResults() {
+    pauseTimer();
+    const scenario = scenarios[currentRound];
+    
+    // 각 조의 선택 적용
+    groups.forEach(g => {
+        const choiceId = document.getElementById(`decision-${g.id}`).value;
+        g.history.push(choiceId);
+        
+        const choiceData = scenario.choices.find(c => c.id === choiceId);
+        g.profit += choiceData.profit;
+        g.people += choiceData.people;
+        g.planet += choiceData.planet;
+    });
+
+    // 화면 전환
+    document.getElementById('screen-game').classList.add('hidden');
+    document.getElementById('screen-result').classList.remove('hidden');
+
+    // 결과 변화량 출력
+    const impactDiv = document.getElementById('result-impacts');
+    impactDiv.innerHTML = '';
+    scenario.choices.forEach(c => {
+        impactDiv.innerHTML += `
+            <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ccc;">
+                <strong>선택 ${c.id}:</strong> ${c.text}<br>
+                <div class="result-impact">
+                    <span class="impact-profit">이익 ${c.profit > 0 ? '+'+c.profit : c.profit}</span> | 
+                    <span class="impact-people">사람 ${c.people > 0 ? '+'+c.people : c.people}</span> | 
+                    <span class="impact-planet">지구 ${c.planet > 0 ? '+'+c.planet : c.planet}</span>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function nextRound() {
+    currentRound++;
+    document.getElementById('screen-result').classList.add('hidden');
+    document.getElementById('screen-game').classList.remove('hidden');
+    loadRound();
+}
+
+function evaluateGroup(group) {
+    let min = Math.min(group.profit, group.people, group.planet);
+    let max = Math.max(group.profit, group.people, group.planet);
+    let diff = max - min;
+    
+    let baseScore = group.profit + group.people + group.planet;
+    let penalty = 0;
+    
+    // 불균형 페널티 로직 (최고/최저 격차가 40점 이상이면 감점)
+    if (diff >= 40) {
+        penalty = 30;
+    }
+    
+    let finalScore = baseScore - penalty;
+    
+    let comment = "";
+    if (min < 10) {
+        comment = "경영 위기! 한 지표가 너무 떡락하여 회사의 존립이 흔들립니다.";
+    } else if (penalty > 0 && max === group.profit) {
+        comment = "돈은 많이 벌었지만, 사회적/환경적 책임을 외면한 악덕 기업으로 찍혔습니다.";
+    } else if (penalty > 0 && max === group.planet) {
+        comment = "환경은 지켰지만, 무리한 투자로 회사의 곳간이 비었습니다. '삐빅- 파산 직전입니다.'";
+    } else if (penalty === 0 && finalScore >= 160) {
+        comment = "폼 미쳤다! 이익, 사람, 지구를 모두 챙긴 이 시대의 진정한 위대한 CEO입니다.";
+    } else if (penalty === 0) {
+        comment = "안정적인 경영을 했지만, 보다 확실한 기업만의 철학이 다소 아쉽습니다.";
+    } else {
+        comment = "불균형한 의사결정으로 인해 기업의 장기적인 지속가능성에 빨간불이 켜졌습니다.";
+    }
+
+    return { finalScore, penalty, comment };
+}
+
+function showFinalResult() {
+    document.getElementById('screen-game').classList.add('hidden');
+    document.getElementById('screen-result').classList.add('hidden');
+    document.getElementById('screen-final').classList.remove('hidden');
+
+    const tbody = document.getElementById('final-tbody');
+    
+    // 그룹별 평가 및 정렬
+    const evaluatedGroups = groups.map(g => {
+        const eval = evaluateGroup(g);
+        return { ...g, ...eval };
+    });
+    
+    // 최종 점수 기준 내림차순 정렬
+    evaluatedGroups.sort((a, b) => b.finalScore - a.finalScore);
+
+    evaluatedGroups.forEach((g, index) => {
+        let statText = `이익:${g.profit} | 사람:${g.people} | 지구:${g.planet}`;
+        let penaltyText = g.penalty > 0 ? `<br><span class="penalty-text">불균형 페널티 -30점 적용됨!</span>` : "";
+        
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${index + 1}위</strong></td>
+                <td><strong>${g.name}</strong><br><span style="font-size:12px; color:#666;">(${statText})</span></td>
+                <td><strong>${g.finalScore}점</strong>${penaltyText}</td>
+                <td class="comment-box">${g.comment}</td>
+            </tr>
+        `;
+    });
+}
+</script>
+
+</body>
+</html>
